@@ -1,0 +1,105 @@
+
+# Global Configuration
+import random
+import time
+import os
+import sys
+import select
+
+def grid():
+    # Generates a fresh blank slate of dots
+    return [["."] * 20 for _ in range(20)]
+
+def main():
+    # 1. Game Setup Variables
+    direction = "Right"
+    score = 0
+    snake_body = [[10, 10], [10, 9], [10, 8]]
+    apple_pos = [5, 5]
+    last_step_time = time.time()
+    
+    # Start the game loop
+    while True:
+        # 2. Reset and build the fresh board layout data
+        board = grid()
+        
+        # 3. Stamp the elements onto the clean board data
+        # Stamp the apple
+        board[apple_pos[0]][apple_pos[1]] = "O"
+        
+        # Stamp all snake segments
+        for segment in snake_body:
+            board[segment[0]][segment[1]] = "S"
+            
+        # 4. Clear terminal screen and show the updated world map
+        os.system('clear' if os.name == 'posix' else 'cls')
+        
+        for row in board:
+            print(" ".join(row))
+            
+        print("\nApples eaten:", score)
+        print("Use 'wasd' to move (Press Enter after key):")
+        
+        ready, _, _ = select.select([sys.stdin], [], [], 0.02)
+    
+        moved_this_frame = False
+    
+        if ready:
+            user = sys.stdin.readline().strip().lower()
+            # Update direction based on user input
+            if user == "w" and direction != "Down":
+                direction = "Up"
+                moved_this_frame = True
+            elif user == "s" and direction != "Up":
+                direction = "Down"
+                moved_this_frame = True
+            elif user == "d" and direction != "Left":
+                direction = "Right"
+                moved_this_frame = True
+            elif user == "a" and direction != "Right":
+                direction = "Left"
+                moved_this_frame = True
+
+        # Check if enough time has passed for an automatic step (0.4 seconds)
+        current_time = time.time()
+        if moved_this_frame or (current_time - last_step_time >= 0.4):
+            # Reset step clock
+            last_step_time = current_time
+        
+        # 6. Calculate where the new head is about to go
+        if direction == "Up":
+            new_head = [snake_body[0][0] - 1, snake_body[0][1]]
+        elif direction == "Down":
+            new_head = [snake_body[0][0] + 1, snake_body[0][1]]
+        elif direction == "Right":
+            new_head = [snake_body[0][0], snake_body[0][1] + 1]
+        elif direction == "Left":
+            new_head = [snake_body[0][0], snake_body[0][1] - 1]
+            
+        # 7. Hit the wall or self-collision check (Game Over)
+        # Checks if head goes out of bounds (0-19) or crashes into its own body segments
+        if (new_head[0] < 0 or new_head[0] >= 20 or
+            new_head[1] < 0 or new_head[1] >= 20 or
+            new_head in snake_body):
+            print("\n💥 GAME OVER! You hit an obstacle! 💥")
+            print(f"Final Score: {score} apples.")
+            break # Breaks out of the while loop to end the program cleanly
+            
+        # 8. Shift the snake body forward
+        snake_body.insert(0, new_head)
+        
+        # 9. Randomize apple if eaten, otherwise shave off the tail
+        if snake_body[0] == apple_pos:
+            random_row = random.randint(0, 19)
+            random_col = random.randint(0, 19)
+            apple_pos = [random_row, random_col]
+            score += 1
+        else:
+            snake_body.pop()
+            
+        # 10. Delay
+        time.sleep(0.3)
+
+# Creates and runs the program
+if __name__ == "__main__":
+    main()
